@@ -17,10 +17,12 @@ server.post('/api/zoos', (req, res) => {
   if (!name) {
     res.status(400).json({ errorMessage: 'Please provide a name for the zoo.' });
   } else {
-    db.insert({name})
-      .into('zoos')
-      .then(ids => {
-        res.status(201).json(ids);
+    db('zoos').insert({ name })
+        .then(arrayOfIds => {
+          return db('zoos').where({ id: arrayOfIds[0] })
+        })
+      .then(arrayOfRoles => {
+        res.status(201).json(arrayOfRoles[0]);
       })
       .catch(error => {
         res.status(500).json({ errorMessage: 'The zoo could not be created. '});
@@ -60,10 +62,10 @@ server.delete('/api/zoos/:id', (req, res) => {
     .where({ id: id })
     .del()
     .then(count => {
-      res.status(200).json(count);
+      res.status(200).json({ message: `${count} item removed from the database.` });
     })
     .catch((error) => {
-      res.status(500).json(error);
+      res.status(500).json({ error: "The zoo record could not be deleted." });
     });
 });
 
@@ -76,9 +78,10 @@ server.put('/api/zoos/:id', (req, res) => {
     db('zoos')
       .where({ id: id })
       .update(zoo)
-      .then((count) => {
-        res.status(200).json({ count });
+      .then(() => {
+        return db('zoos').where({id: id }).first();
       })
+      .then( record => res.status(200).json(record))
       .catch(error => {
         res.status(500).json({ errorMessage: 'The zoo information could not be modified.' })
       });
